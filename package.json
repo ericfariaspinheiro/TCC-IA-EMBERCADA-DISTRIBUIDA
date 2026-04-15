@@ -31,7 +31,7 @@
     "bundle": "rimraf dist && esbuild --outdir=dist --sourcemap --bundle --platform=node --target=node20.10.0 ./src/index.ts",
     "compile": "tsc",
     "compile:watch": "tsc -w",
-    "dev": "nodemon --watch src --watch test --ext ts,json --exec 'yarn bundle && yarn start'",
+    "dev": "nodemon --watch src --ext ts --exec \"yarn bundle && node dist/index.js\"",
     "debug": "yarn bundle && node --enable-source-maps --inspect-brk ./dist/index.js",
     "debug:test": "node --inspect-brk ./node_modules/.bin/jest --runInBand .",
     "format": "prettier . --write",
@@ -60,5 +60,10 @@
     "rimraf": "5.0.10",
     "typescript": "5.9.3"
   },
-  "packageManager": "yarn@4.2.2"
+  "packageManager": "yarn@4.2.2",
+  "dependencies": {
+    "@google/genai": "^1.50.0",
+    "axios": "^1.14.0",
+    "dotenv": "^17.3.1"
+  }
 }
