@@ -1,63 +1,51 @@
-import { searchTweets } from "../collectors/xCollector"
+import { getLastTweetWithReplies } from "../infrastructure/xCollector"
 import { Tweet } from "../types/Tweet"
-import { GoogleGenAI } from "@google/genai"
+import { generateContent } from "../infrastructure/LLMAdapter"
 
 export type Sentiment = "positive" | "negative" | "neutral"
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-})
-
 export class SocialMediaArtifact {
 
-  // 🔹 PERCEPÇÃO
-  async getTweets(query: string): Promise<Tweet[]> {
-    return await searchTweets(query)
+  // 🔹 MEDIAÇÃO COM AMBIENTE (Twitter)
+  async perceive(username: string): Promise<{
+    tweet: Tweet | null
+    replies: Tweet[]
+  }> {
+    return await getLastTweetWithReplies(username)
   }
 
-  // 🔹 RACIOCÍNIO AVANÇADO (BATCH + CAMPANHA)
-  async analyzeCampaign(tweets: Tweet[]): Promise<{
-    sentiments: Sentiment[]
-    isCampaign: boolean
-    explanation: string
-  }> {
+  // 🔹 MEDIAÇÃO COM AMBIENTE (LLM)
+  async reason(replies: Tweet[]): Promise<Sentiment[]> {
 
-    const formattedTweets = tweets
+    if (!replies.length) return []
+
+    const limitedReplies = replies.slice(0, 20)
+
+    const formattedReplies = limitedReplies
       .map((t, i) => `${i + 1}. ${t.text}`)
       .join("\n")
 
     const prompt = `
-You are analyzing social media activity.
+Classify each reply as: positive, negative, or neutral.
 
-Tasks:
-1. Classify each tweet as: positive, negative, or neutral
-2. Determine if there is a coordinated negative campaign
+Rules:
+- Positive: praise, support, enthusiasm
+- Negative: criticism, insults, disagreement, hostility
+- Neutral: factual or unclear tone
 
-A campaign means:
-- many negative posts
-- similar tone or intent
-- repeated accusations or narratives
-
-Return ONLY a JSON object like:
+Return ONLY JSON:
 
 {
-  "sentiments": ["positive", "negative", "neutral"],
-  "isCampaign": true,
-  "explanation": "short explanation"
+  "sentiments": ["positive", "negative", "neutral"]
 }
 
-Tweets:
-${formattedTweets}
+Replies:
+${formattedReplies}
 `
 
     try {
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-      })
-
-      const raw = response.text || ""
+      const raw = await generateContent(prompt)
 
       console.log("LLM RAW:", raw)
 
@@ -68,31 +56,21 @@ ${formattedTweets}
 
       const parsed = JSON.parse(cleaned)
 
-      return {
-        sentiments: parsed.sentiments.map((s: string) => {
-          const normalized = s.toLowerCase().replace(/[^a-z]/g, "")
+      const sentiments: Sentiment[] = parsed.sentiments.map((s: string) => {
+        const normalized = s.toLowerCase().replace(/[^a-z]/g, "")
 
-          if (normalized === "positive") return "positive"
-          if (normalized === "negative") return "negative"
-          return "neutral"
-        }),
-        isCampaign: parsed.isCampaign,
-        explanation: parsed.explanation
-      }
+        if (normalized === "positive") return "positive"
+        if (normalized === "negative") return "negative"
+        return "neutral"
+      })
+
+      return sentiments
 
     } catch (error) {
 
-      console.log("ERRO NA ANÁLISE DE CAMPANHA:")
-      console.log(error)
+      console.log("❌ Erro no artifact ao processar resposta da LLM:", error)
 
-      return {
-        sentiments: tweets.map(() => "neutral"),
-        isCampaign: false,
-        explanation: "fallback"
-      }
-
+      return limitedReplies.map(() => "neutral")
     }
-
   }
-
 }

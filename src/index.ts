@@ -1,13 +1,21 @@
 import "dotenv/config"
 import { ReflexAgent } from "./agent/reflexAgent"
 
-async function main() {
+let hasRun = false
 
-  console.log("Running ReflexAgent...")
+async function main() {
+  if (hasRun) {
+    console.log("⚠️ Agent já executado. Ignorando nova execução...")
+    return
+  }
+
+  hasRun = true
+
+  console.log("🚀 Iniciando execução do agente...\n")
 
   const agent = new ReflexAgent()
 
-  await agent.run("Chappell Roan")
+  await agent.run("elonmusk")
 }
 
 main()

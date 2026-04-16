@@ -1,5 +1,7 @@
 import { SocialMediaArtifact, Sentiment } from "../artifacts/socialMediaArtifact"
 
+let hasRun = false
+
 export class ReflexAgent {
 
   private artifact = new SocialMediaArtifact()
@@ -8,32 +10,41 @@ export class ReflexAgent {
   private positiveCount = 0
   private neutralCount = 0
 
-  async run(query: string) {
+  async run(username: string) {
+
+    if (hasRun) {
+      console.log("⚠️ Agente já executado.")
+      return
+    }
+
+    hasRun = true
 
     console.log("Starting Social Media Sentiment Agent\n")
 
-    const tweets = await this.artifact.getTweets(query)
+    // 🔹 PERCEPÇÃO (via artefato)
+    const { tweet, replies } = await this.artifact.perceive(username)
 
-    const result = await this.artifact.analyzeCampaign(tweets)
+    if (!tweet) {
+      console.log("Nenhum tweet encontrado.")
+      return
+    }
 
-    const { sentiments, isCampaign, explanation } = result
+    console.log("\n📌 Tweet analisado:")
+    console.log(tweet.text)
 
-    for (let i = 0; i < tweets.length; i++) {
+    // 🔹 RACIOCÍNIO (via artefato)
+    const sentiments = await this.artifact.reason(replies)
+
+    // 🔹 AÇÃO (interna ao agente)
+    for (let i = 0; i < sentiments.length; i++) {
 
       const sentiment = sentiments[i]
 
       console.log("\n--- Agent Cycle ---")
-      console.log("Tweet:", tweets[i]?.text)
+      console.log("Reply:", replies[i]?.text)
       console.log("Sentiment:", sentiment)
 
-      if (sentiment) {
-        this.act(sentiment)
-      }
-    }
-
-    if (isCampaign) {
-      console.log("\n🚨 ALERTA DE CAMPANHA DETECTADA")
-      console.log("Motivo:", explanation)
+      this.act(sentiment)
     }
 
     this.printSummary()
@@ -41,19 +52,12 @@ export class ReflexAgent {
 
   private act(sentiment: Sentiment) {
 
-    if (sentiment === "positive") {
-      this.positiveCount++
-    }
-
+    if (sentiment === "positive") this.positiveCount++
     else if (sentiment === "negative") {
       this.negativeCount++
-      console.log("Post negativo detectado.")
+      console.log("⚠️ Resposta negativa detectada.")
     }
-
-    else {
-      this.neutralCount++
-    }
-
+    else this.neutralCount++
   }
 
   private printSummary() {
@@ -62,7 +66,5 @@ export class ReflexAgent {
     console.log("Positivos:", this.positiveCount)
     console.log("Negativos:", this.negativeCount)
     console.log("Neutros:", this.neutralCount)
-
   }
-
 }

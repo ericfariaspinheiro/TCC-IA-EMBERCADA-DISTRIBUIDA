@@ -1,6 +1,6 @@
 // Não to usando mais, foi para testes
 
-import { searchTweets } from "../collectors/xCollector"
+import { searchTweets } from "../infrastructure/xCollector"
 
 async function main() {
 
