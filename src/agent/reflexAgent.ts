@@ -1,10 +1,12 @@
-import { SocialMediaArtifact, Sentiment } from "../artifacts/socialMediaArtifact"
+import { TweetCollectorArtifact } from "../artifacts/tweetCollectorArtifact"
+import { SentimentAnalysisArtifact, Sentiment } from "../artifacts/sentimentAnalysisArtifact"
 
 let hasRun = false
 
 export class ReflexAgent {
 
-  private artifact = new SocialMediaArtifact()
+  private collector = new TweetCollectorArtifact()
+  private analyzer = new SentimentAnalysisArtifact()
 
   private negativeCount = 0
   private positiveCount = 0
@@ -21,8 +23,8 @@ export class ReflexAgent {
 
     console.log("Starting Social Media Sentiment Agent\n")
 
-    // 🔹 PERCEPÇÃO (via artefato)
-    const { tweet, replies } = await this.artifact.perceive(username)
+    // PERCEPÇÃO (artifact de coleta)
+    const { tweet, replies } = await this.collector.perceive(username)
 
     if (!tweet) {
       console.log("Nenhum tweet encontrado.")
@@ -32,10 +34,10 @@ export class ReflexAgent {
     console.log("\n📌 Tweet analisado:")
     console.log(tweet.text)
 
-    // 🔹 RACIOCÍNIO (via artefato)
-    const sentiments = await this.artifact.reason(replies)
+    // RACIOCÍNIO (artifact de LLM)
+    const sentiments = await this.analyzer.reason(replies)
 
-    // 🔹 AÇÃO (interna ao agente)
+    // AÇÃO (continua igual)
     for (let i = 0; i < sentiments.length; i++) {
 
       const sentiment = sentiments[i]

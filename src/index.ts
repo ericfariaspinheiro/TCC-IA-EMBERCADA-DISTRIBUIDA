@@ -15,7 +15,7 @@ async function main() {
 
   const agent = new ReflexAgent()
 
-  await agent.run("elonmusk")
+  await agent.run("LulaOficial")
 }
 
 main()

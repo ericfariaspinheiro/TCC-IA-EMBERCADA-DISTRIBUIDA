@@ -1,20 +1,14 @@
-import { getLastTweetWithReplies } from "../infrastructure/xCollector"
+import { GoogleGenAI } from "@google/genai"
 import { Tweet } from "../types/Tweet"
-import { generateContent } from "../infrastructure/LLMAdapter"
 
 export type Sentiment = "positive" | "negative" | "neutral"
 
-export class SocialMediaArtifact {
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY!,
+})
 
-  // 🔹 MEDIAÇÃO COM AMBIENTE (Twitter)
-  async perceive(username: string): Promise<{
-    tweet: Tweet | null
-    replies: Tweet[]
-  }> {
-    return await getLastTweetWithReplies(username)
-  }
+export class SentimentAnalysisArtifact {
 
-  // 🔹 MEDIAÇÃO COM AMBIENTE (LLM)
   async reason(replies: Tweet[]): Promise<Sentiment[]> {
 
     if (!replies.length) return []
@@ -45,7 +39,12 @@ ${formattedReplies}
 
     try {
 
-      const raw = await generateContent(prompt)
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+      })
+
+      const raw = response.text || ""
 
       console.log("LLM RAW:", raw)
 
@@ -68,7 +67,7 @@ ${formattedReplies}
 
     } catch (error) {
 
-      console.log("❌ Erro no artifact ao processar resposta da LLM:", error)
+      console.log("❌ Erro ao processar resposta da LLM:", error)
 
       return limitedReplies.map(() => "neutral")
     }
